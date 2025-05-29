@@ -68,3 +68,9 @@
 - 提交信息使用英文
 - 遵循Conventional Commits规范
 - 提交前运行lint和测试
+
+## 远程仓库信息
+
+- **仓库地址**: git@github.com:liubei-ai/cefr-analyzer.git
+- **远程名称**: origin
+- **主分支**: main
