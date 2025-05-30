@@ -7,7 +7,6 @@ import {
   formatAnalysisResult,
   generateSimpleVisualization,
   calculateComplexityScore,
-  getComplexityLevel,
 } from '../utils';
 
 /**
@@ -33,10 +32,9 @@ export function analyzeTextExample(text: string): void {
 
   // 计算复杂度得分
   const complexityScore = calculateComplexityScore(result);
-  const complexityLevel = getComplexityLevel(complexityScore);
 
-  console.log(`\n文本复杂度得分: ${complexityScore.toFixed(2)}`);
-  console.log(`对应CEFR级别: ${complexityLevel.toUpperCase()}`);
+  console.log(`\n文本复杂度得分: ${complexityScore.score.toFixed(2)}`);
+  console.log(`对应CEFR级别: ${complexityScore.level.toUpperCase()}`);
 
   // 输出各级别的单词示例
   console.log('\n各级别单词示例:');
