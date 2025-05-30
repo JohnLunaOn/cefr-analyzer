@@ -11,10 +11,10 @@ const config: Config.InitialOptions = {
       branches: 90,
       functions: 90,
       lines: 90,
-      statements: 90
-    }
+      statements: 90,
+    },
   },
-  verbose: true
+  verbose: true,
 };
 
 export default config;

@@ -102,7 +102,7 @@ export function generateSimpleVisualization(result: ICEFRAnalysisResult): string
 
   levels.forEach(level => {
     const percentage = levelPercentages[level];
-    const barLength = Math.round(percentage / 2); // 每2%对应1个字符
+    const barLength = Math.floor(percentage / 2); // 每2%对应1个字符
     const bar = '█'.repeat(barLength);
 
     visualization += `${level.toUpperCase()}: ${bar} ${percentage.toFixed(2)}%\n`;

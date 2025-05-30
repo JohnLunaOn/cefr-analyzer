@@ -9,6 +9,7 @@
     "test": "jest",
     "lint": "eslint 'src/**/*.ts'",
     "lint:fix": "eslint --fix 'src/**/*.ts'",
+    "lint:fix-test": "eslint --fix 'tests/**/*.ts'",
     "format": "prettier --write 'src/**/*.ts'",
     "prepare": "npm run build",
     "prepublishOnly": "npm test && npm run lint"
@@ -23,6 +24,7 @@
   "author": "",
   "license": "MIT",
   "devDependencies": {
+    "@jest/types": "29.6.3",
     "@types/jest": "^29.5.0",
     "@types/node": "^18.15.11",
     "@typescript-eslint/eslint-plugin": "^5.57.1",

@@ -61,6 +61,8 @@ export class CEFRTextAnalyzer implements ITextAnalyzer {
 
     tokens.forEach((token: any) => {
       const word = token.out();
+      if (word.trim() === '') return; // 跳过空单词
+
       const normalizedWord = mergedOptions.caseSensitive ? word : word.toLowerCase();
 
       // 如果已处理过该单词，则跳过
@@ -196,7 +198,7 @@ export class CEFRTextAnalyzer implements ITextAnalyzer {
    */
   public getLevelDistribution(text: string, options?: IAnalyzerOptions): Record<CEFRLevel, number> {
     const result = this.analyze(text, options);
-    return result.levelCounts;
+    return result.levelPercentages;
   }
 
   /**
