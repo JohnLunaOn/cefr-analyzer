@@ -1,6 +1,46 @@
-import { CEFRTextAnalyzer } from '../src/analyzer';
+import { CEFRTextAnalyzer, cefrAnalyzer } from '../src/analyzer';
 import { vocabularyManager } from '../src/vocabulary';
 import { CEFRLevel } from '../src/types';
+import lemmatizer from 'wink-lemmatizer';
+
+// 模拟 wink-lemmatizer
+jest.mock('wink-lemmatizer', () => ({
+  noun: jest.fn().mockImplementation((word: string) => {
+    const nounMap: Record<string, string> = {
+      books: 'book',
+      children: 'child',
+      mice: 'mouse',
+      analyses: 'analysis',
+    };
+    return nounMap[word] || word;
+  }),
+  verb: jest.fn().mockImplementation((word: string) => {
+    const verbMap: Record<string, string> = {
+      running: 'run',
+      ate: 'eat',
+      gone: 'go',
+      studying: 'study',
+    };
+    return verbMap[word] || word;
+  }),
+  adjective: jest.fn().mockImplementation((word: string) => {
+    const adjectiveMap: Record<string, string> = {
+      better: 'good',
+      worst: 'bad',
+      larger: 'large',
+      happiest: 'happy',
+    };
+    return adjectiveMap[word] || word;
+  }),
+}));
+
+function splitToWords(text: string): Array<string> {
+  return text
+    .toLowerCase() // 全部小写（可选）
+    .replace(/[^a-zA-Z\s']/g, '') // 去除标点（保留撇号）
+    .split(/\s+/) // 按空格分词
+    .filter(Boolean); // 去除空字符串
+}
 
 // 模拟wink-nlp和模型
 jest.mock('wink-nlp', () => {
@@ -9,16 +49,38 @@ jest.mock('wink-nlp', () => {
       tokens: jest.fn().mockReturnValue({
         filter: jest.fn().mockImplementation(filterFn => {
           // 模拟文本分词结果
+          const mockTokens = splitToWords(text).map(word => ({
+            out: jest.fn().mockImplementation(param => {
+              if (!param) return word;
+              if (param.type) return /^[a-zA-Z]+$/.test(word) ? 'word' : 'other';
+              if (param.stopWordFlag) return false;
+              if (param.pos) return 'NN'; // 默认返回名词词性
+              if (param.lemma) return word.toLowerCase(); // 添加lemma支持
+              return word;
+            }),
+          }));
+          const filteredTokens = mockTokens.filter(filterFn);
+
+          // 添加each方法作为forEach的另一种写法
+          (filteredTokens as any).each = function (callback: any) {
+            this.forEach(callback);
+          };
+
+          return filteredTokens;
+        }),
+        // 添加each方法到tokens返回值
+        each: jest.fn().mockImplementation(callback => {
           const mockTokens = text.split(/\s+/).map(word => ({
             out: jest.fn().mockImplementation(param => {
               if (!param) return word;
               if (param.type) return 'word';
               if (param.stopWordFlag) return false;
               if (param.pos) return 'NN'; // 默认返回名词词性
+              if (param.lemma) return word.toLowerCase(); // 添加lemma支持
               return word;
             }),
           }));
-          return mockTokens.filter(filterFn);
+          mockTokens.forEach(callback);
         }),
       }),
     })),
@@ -26,6 +88,7 @@ jest.mock('wink-nlp', () => {
       type: { type: true },
       stopWordFlag: { stopWordFlag: true },
       pos: { pos: true },
+      lemma: { lemma: true }, // 添加lemma支持
     },
   }));
 });
@@ -133,9 +196,9 @@ describe('CEFRTextAnalyzer', () => {
 
     // 设置区分大小写（由于模拟的词汇表只有小写，所以大写单词会被视为未知）
     const resultCaseSensitive = analyzer.analyze(text, { caseSensitive: true });
-    // 注意：这里的期望结果取决于模拟实现，可能需要调整
-    expect(vocabularyManager.getCEFRLevel).toHaveBeenCalledWith('Hello');
-    expect(vocabularyManager.getCEFRLevel).toHaveBeenCalledWith('WORLD');
+    // 因为它实际还是要传字根（lemma），所以仍然是小写，大小写敏感只影响 wordsAtLevel
+    expect(vocabularyManager.getCEFRLevel).toHaveBeenCalledWith('hello');
+    expect(vocabularyManager.getCEFRLevel).toHaveBeenCalledWith('world');
   });
 
   test('should analyze text with analyzeByPartOfSpeech option', () => {
@@ -281,5 +344,34 @@ describe('CEFRTextAnalyzer', () => {
     expect(a1Words[0].pos).toBe('NN');
     expect(a1Words[1].word).toBe('world');
     expect(a1Words[1].pos).toBe('NN');
+  });
+
+  // 新增测试用例：测试处理特殊字符和空格
+  test('should handle special characters and spaces correctly', () => {
+    const text = 'Hello, world! How are you?   Multiple   spaces.';
+
+    const result = analyzer.analyze(text);
+
+    // 验证标点符号和多余空格被正确处理
+    expect(result.totalWords).toBe(7); // Hello world How are you Multiple spaces
+    expect(result.levelCounts.a1).toBe(2); // hello, world
+  });
+
+  // 新增测试用例：测试 getLevelDistribution 方法处理空文本
+  test('should handle empty text in getLevelDistribution method', () => {
+    const distribution = analyzer.getLevelDistribution('');
+
+    // 验证空文本的分布结果所有级别都是0
+    expect(distribution.a1).toBe(0);
+    expect(distribution.a2).toBe(0);
+    expect(distribution.b1).toBe(0);
+    expect(distribution.b2).toBe(0);
+    expect(distribution.c1).toBe(0);
+    expect(distribution.c2).toBe(0);
+  });
+
+  // 新增测试用例：测试 cefrAnalyzer 导出实例
+  test('should export cefrAnalyzer instance', () => {
+    expect(cefrAnalyzer).toBeInstanceOf(CEFRTextAnalyzer);
   });
 });

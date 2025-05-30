@@ -34336,11 +34336,6 @@ export default [
     "cefr": "b1"
   },
   {
-    "word": false,
-    "pos": "adjective",
-    "cefr": "a1"
-  },
-  {
     "word": "falter",
     "pos": "verb",
     "cefr": "b2"
@@ -43749,11 +43744,6 @@ export default [
     "word": "troublesome",
     "pos": "adjective",
     "cefr": "b2"
-  },
-  {
-    "word": true,
-    "pos": "adjective",
-    "cefr": "a1"
   },
   {
     "word": "trumpet",
@@ -54964,5 +54954,15 @@ export default [
     "word": "tranquilise",
     "pos": "verb",
     "cefr": "c2"
+  },
+  {
+    "word": "paradigm",
+    "pos": "noun",
+    "cefr": "c2"
+  },
+  {
+    "word": "’s",
+    "pos": "infinitive-to",
+    "cefr": "a1"
   }
 ];

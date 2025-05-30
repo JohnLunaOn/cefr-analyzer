@@ -49,12 +49,12 @@ export function calculateComplexityScore(result: ICEFRAnalysisResult): Difficult
 
   // ✅ 1. 权重设定
   const weights: Record<CEFRLevel, number> = {
-    a1: 1,
-    a2: 2,
-    b1: 3,
-    b2: 4,
-    c1: 5,
-    c2: 6,
+    a1: 1.0,
+    a2: 2.0,
+    b1: 3.5,
+    b2: 5.0,
+    c1: 7.0,
+    c2: 9.5,
   };
 
   // ✅ 2. 基础难度得分（加权平均）
@@ -64,19 +64,21 @@ export function calculateComplexityScore(result: ICEFRAnalysisResult): Difficult
   }
   baseScore /= 100;
 
+  const shortPenalty = totalWords < 30 ? ((30 - totalWords) / 30) * 0.5 : 0;
+
   // ✅ 3. 超短文本特殊处理
-  if (totalWords < 30) {
+  if (totalWords < 10) {
+    const adjustedScore = Math.max(0, baseScore - shortPenalty);
     return {
-      score: baseScore,
-      level: getComplexityLevel(baseScore),
+      score: parseFloat(adjustedScore.toFixed(2)),
+      level: getComplexityLevel(adjustedScore),
       note: 'Too short to evaluate CEFR level reliably.',
     };
   }
 
-  // ✅ 4. 惩罚短文本，奖励长文本
-  const shortPenalty = totalWords < 100 ? ((100 - totalWords) / 100) * 0.5 : 0;
+  // ✅ 4. 奖励长文本
   // 奖励长文本,（上限1.0分）
-  const longBonus = Math.min(1.0, Math.log(Math.max(1, totalWords - 100)) / 10);
+  const longBonus = Math.min(1.0, Math.log(Math.max(1, totalWords - 50)) / 10);
 
   const adjustedScore = Math.max(0, baseScore + longBonus - shortPenalty);
 
@@ -92,11 +94,11 @@ export function calculateComplexityScore(result: ICEFRAnalysisResult): Difficult
  * @returns 对应的CEFR级别
  */
 export function getComplexityLevel(score: number): CEFRLevel {
-  if (score < 1.5) return 'a1';
-  if (score < 2.5) return 'a2';
-  if (score < 3.5) return 'b1';
-  if (score < 4.5) return 'b2';
-  if (score < 5.5) return 'c1';
+  if (score < 1.2) return 'a1';
+  if (score < 1.7) return 'a2';
+  if (score < 2.2) return 'b1';
+  if (score < 2.8) return 'b2';
+  if (score < 3.5) return 'c1';
   return 'c2';
 }
 

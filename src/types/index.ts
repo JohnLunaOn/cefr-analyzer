@@ -46,6 +46,8 @@ export interface IVocabularyItem {
 export interface IWordWithPos {
   /** 单词 */
   word: string;
+  /** 词根 */
+  lemma: string;
   /** 词性 */
   pos: string;
 }

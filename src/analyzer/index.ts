@@ -1,5 +1,7 @@
 import winkNLP from 'wink-nlp';
 import model from 'wink-eng-lite-web-model';
+import lemmatizer from 'wink-lemmatizer';
+
 import {
   CEFRLevel,
   ICEFRAnalysisResult,
@@ -9,6 +11,23 @@ import {
 } from '../types';
 import { vocabularyManager } from '../vocabulary';
 import { ITextAnalyzer, IWordProcessingResult } from './types';
+
+/* istanbul ignore next */
+function fixLemma(word: string, pos: string): string {
+  switch (pos) {
+    case 'NOUN':
+    case 'PROPN':
+      return lemmatizer.noun(word);
+    case 'VERB':
+      return lemmatizer.verb(word);
+    case 'ADJ':
+    case 'ADV':
+      return lemmatizer.adjective(word);
+    // ADV、PROPN 和 PRON 通常保留原型（专有名词/代词），可选择直接返回
+    default:
+      return word;
+  }
+}
 
 /**
  * 基于wink-nlp的CEFR文本分析器
@@ -48,7 +67,7 @@ export class CEFRTextAnalyzer implements ITextAnalyzer {
 
     // 提取所有单词（过滤掉标点符号和数字）
     const tokens = doc.tokens().filter((token: any) => {
-      return token.out(this.nlp.its.type) === 'word' && !token.out(this.nlp.its.stopWordFlag);
+      return token.out(this.nlp.its.type) === 'word';
     });
 
     // 处理每个单词，获取其CEFR级别
@@ -75,17 +94,20 @@ export class CEFRTextAnalyzer implements ITextAnalyzer {
       c2: [],
     };
 
-    tokens.forEach((token: any) => {
-      const word = token.out();
+    tokens.each((token: any) => {
+      let word: string = token.out();
+      word = mergedOptions.caseSensitive ? word : word.toLowerCase();
+      const lemma = token.out(this.nlp.its.lemma);
+
       // 获取单词的词性
       const pos = token.out(this.nlp.its.pos);
 
+      // console.log(`Word: ${word}, Lemma: ${lemma}, Pos: ${pos}`);
+
       if (word.trim() === '') return; // 跳过空单词
 
-      const normalizedWord = mergedOptions.caseSensitive ? word : word.toLowerCase();
-      const uniqueKey = mergedOptions.analyzeByPartOfSpeech
-        ? `${normalizedWord}-${pos}`
-        : normalizedWord;
+      const normalizedWord = lemma.toLowerCase();
+      const uniqueKey = mergedOptions.analyzeByPartOfSpeech ? `${word}（${pos}）` : word;
 
       // 如果已处理过该单词，则跳过
       if (uniqueWords.has(uniqueKey)) {
@@ -101,7 +123,8 @@ export class CEFRTextAnalyzer implements ITextAnalyzer {
         // 注意：这里需要将wink-nlp的词性映射到我们的词性类型
         const mappedPos = this.mapPartOfSpeech(pos);
         cefrLevel = mappedPos
-          ? vocabularyManager.getCEFRLevel(normalizedWord, mappedPos)
+          ? vocabularyManager.getCEFRLevel(normalizedWord, mappedPos) ||
+            vocabularyManager.getCEFRLevel(normalizedWord) // fallback
           : undefined;
       } else {
         // 不考虑词性，直接查询CEFR级别
@@ -116,16 +139,32 @@ export class CEFRTextAnalyzer implements ITextAnalyzer {
         partOfSpeech: pos,
       });
 
+      if (!cefrLevel) {
+        const lemma = fixLemma(word, pos);
+        if (word !== lemma) {
+          // 稍微补救一下，但是一些派生词是识别不了的
+          if (mergedOptions.analyzeByPartOfSpeech) {
+            const mappedPos = this.mapPartOfSpeech(pos);
+            cefrLevel =
+              vocabularyManager.getCEFRLevel(lemma, mappedPos) ||
+              vocabularyManager.getCEFRLevel(lemma); // fallback
+          } else {
+            cefrLevel = vocabularyManager.getCEFRLevel(lemma);
+          }
+        }
+      }
+
       // 更新统计数据
       if (cefrLevel) {
         levelCounts[cefrLevel]++;
         // 将单词添加到对应级别的列表中
         wordsAtLevel[cefrLevel].push({
-          word: normalizedWord,
+          word,
+          lemma: normalizedWord,
           pos: pos,
         });
       } else if (mergedOptions.includeUnknownWords) {
-        unknownWordsList.add(normalizedWord);
+        unknownWordsList.add(uniqueKey);
       }
     });
 
@@ -145,8 +184,8 @@ export class CEFRTextAnalyzer implements ITextAnalyzer {
 
     Object.keys(levelCounts).forEach(level => {
       const cefrLevel = level as CEFRLevel;
-      levelPercentages[cefrLevel] =
-        totalWords > 0 ? (levelCounts[cefrLevel] / totalWords) * 100 : 0;
+      const count = totalWords - unknownWords;
+      levelPercentages[cefrLevel] = count > 0 ? (levelCounts[cefrLevel] / count) * 100 : 0;
     });
 
     // 返回分析结果

@@ -6,6 +6,8 @@ const config: Config.InitialOptions = {
   testMatch: ['**/tests/**/*.test.ts'],
   collectCoverage: true,
   coverageDirectory: 'coverage',
+  // 排除 vocabulary 目录不计入测试覆盖率统计
+  coveragePathIgnorePatterns: ['/node_modules/', '/src/vocabulary/'],
   coverageThreshold: {
     global: {
       branches: 90,

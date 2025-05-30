@@ -1,6 +1,6 @@
 {
   "name": "cefr-analyzer",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "分析英文文本中各CEFR级别(A1-C2)单词的数量",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -40,6 +40,7 @@
   },
   "dependencies": {
     "wink-eng-lite-web-model": "^1.8.1",
+    "wink-lemmatizer": "^3.0.4",
     "wink-nlp": "^2.3.2"
   },
   "engines": {
