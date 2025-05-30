@@ -1,4 +1,5 @@
 import { CEFRLevel, ICEFRAnalysisResult } from '../types';
+import { DifficultyScoreResult } from './types';
 
 /**
  * 格式化CEFR分析结果为可读文本
@@ -41,18 +42,13 @@ export function formatAnalysisResult(result: ICEFRAnalysisResult): string {
  * 计算文本的CEFR复杂度得分
  * 基于各级别单词的加权平均值
  * @param result CEFR分析结果
- * @returns 复杂度得分（1-6，对应A1-C2）
+ * @returns ICEFRAnalysisResult score得分1～6，level对应等级
  */
-export function calculateComplexityScore(result: ICEFRAnalysisResult): number {
-  const { levelCounts, totalWords } = result;
+export function calculateComplexityScore(result: ICEFRAnalysisResult): DifficultyScoreResult {
+  const { totalWords, levelPercentages } = result;
 
-  // 如果没有识别到任何单词，返回0
-  if (totalWords === 0) {
-    return 0;
-  }
-
-  // 各级别的权重
-  const levelWeights: Record<CEFRLevel, number> = {
+  // ✅ 1. 权重设定
+  const weights: Record<CEFRLevel, number> = {
     a1: 1,
     a2: 2,
     b1: 3,
@@ -61,18 +57,33 @@ export function calculateComplexityScore(result: ICEFRAnalysisResult): number {
     c2: 6,
   };
 
-  // 计算加权和
-  let weightedSum = 0;
-  let recognizedWords = 0;
+  // ✅ 2. 基础难度得分（加权平均）
+  let baseScore = 0;
+  for (const level of Object.keys(weights) as CEFRLevel[]) {
+    baseScore += (levelPercentages[level] || 0) * weights[level];
+  }
+  baseScore /= 100;
 
-  Object.entries(levelCounts).forEach(([level, count]) => {
-    const cefrLevel = level as CEFRLevel;
-    weightedSum += levelWeights[cefrLevel] * count;
-    recognizedWords += count;
-  });
+  // ✅ 3. 超短文本特殊处理
+  if (totalWords < 30) {
+    return {
+      score: baseScore,
+      level: getComplexityLevel(baseScore),
+      note: 'Too short to evaluate CEFR level reliably.',
+    };
+  }
 
-  // 计算加权平均值
-  return recognizedWords > 0 ? weightedSum / recognizedWords : 0;
+  // ✅ 4. 惩罚短文本，奖励长文本
+  const shortPenalty = totalWords < 100 ? ((100 - totalWords) / 100) * 0.5 : 0;
+  // 奖励长文本,（上限1.0分）
+  const longBonus = Math.min(1.0, Math.log(Math.max(1, totalWords - 100)) / 10);
+
+  const adjustedScore = Math.max(0, baseScore + longBonus - shortPenalty);
+
+  return {
+    score: parseFloat(adjustedScore.toFixed(2)),
+    level: getComplexityLevel(adjustedScore),
+  };
 }
 
 /**

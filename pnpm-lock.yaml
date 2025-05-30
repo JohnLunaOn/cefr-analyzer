@@ -6,11 +6,11 @@ settings:
 
 dependencies:
   wink-eng-lite-web-model:
-    specifier: ^1.5.0
-    version: 1.5.0(wink-nlp@1.14.0)
+    specifier: ^1.8.1
+    version: 1.8.1
   wink-nlp:
-    specifier: ^1.14.0
-    version: 1.14.0
+    specifier: ^2.3.2
+    version: 2.3.2
 
 devDependencies:
   '@jest/types':
@@ -3017,17 +3017,13 @@ packages:
       isexe: 2.0.0
     dev: true
 
-  /wink-eng-lite-web-model@1.5.0(wink-nlp@1.14.0):
-    resolution: {integrity: sha512-5t27uqKRpQVyjb+ztIabmD2m76ct+5NP9e3TVxla4GBQzgPJnAHCynPw4KQa42BNn5xxi7b7E9P3akSFiYWHbg==}
+  /wink-eng-lite-web-model@1.8.1:
+    resolution: {integrity: sha512-M2tSOU/rVNkDj8AS8IoKJaM7apJJjS0cN+hE8CPazfnB4A/ojyc9+7RMPk18UOiIdSyWk7MR6w8z9lWix2l5tA==}
     engines: {node: '>=16.0.0'}
-    peerDependencies:
-      wink-nlp: '>1.8.1'
-    dependencies:
-      wink-nlp: 1.14.0
     dev: false
 
-  /wink-nlp@1.14.0:
-    resolution: {integrity: sha512-CZjaRuCBE/ZWKAmX11q8xTo8L9QJ4R7YlpKPgXdnKb2GKVDST9jh+BhgSMl+1PlMyisodzlTHk0XexpBnvM+Cg==}
+  /wink-nlp@2.3.2:
+    resolution: {integrity: sha512-PsK/nOjI0nfC23HbpJa/eeca+wvmx2SVvH2hIhOJSDe0hbsyOwwImmRgYvv6BwsGN7/8aCHoeNzCac9xAsrvaw==}
     dev: false
 
   /word-wrap@1.2.5:

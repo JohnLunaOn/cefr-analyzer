@@ -47711,11 +47711,6 @@ export default [
     "cefr": "c1"
   },
   {
-    "word": "batter",
-    "pos": "",
-    "cefr": "c1"
-  },
-  {
     "word": "unreliably",
     "pos": "adverb",
     "cefr": "c1"

@@ -199,36 +199,84 @@ export class CEFRTextAnalyzer implements ITextAnalyzer {
    * @returns 映射后的词性，如果无法映射则返回undefined
    */
   private mapPartOfSpeech(winkPos: string): PartOfSpeech | undefined {
-    // wink-nlp使用Penn Treebank词性标记
+    // wink-nlp使用通用词性标签 (Universal POS tags)
     // 这里将其映射到我们的词性类型
-    const posMapping: Record<string, string> = {
-      NN: 'noun', // 名词
+    const posMapping: Record<string, PartOfSpeech> = {
+      // 基本词性映射
+      NOUN: 'noun', // 名词
+      PROPN: 'noun', // 专有名词
+      VERB: 'verb', // 动词
+      ADJ: 'adjective', // 形容词
+      ADV: 'adverb', // 副词
+      DET: 'determiner', // 限定词
+      PRON: 'pronoun', // 代词
+      ADP: 'preposition', // 介词
+      CCONJ: 'conjunction', // 并列连词
+      SCONJ: 'conjunction', // 从属连词
+      INTJ: 'interjection', // 感叹词
+      // 扩展词性映射
+      AUX: 'auxiliary verb', // 助动词
+      NUM: 'number', // 数词
+      // 特殊动词类型
+      'AUX-MD': 'modal verb', // 情态动词
+      'AUX-BE': 'be-verb', // be动词
+      'AUX-DO': 'do-verb', // do动词
+      'AUX-HV': 'have-verb', // have动词
+      // 其他特殊类型
+      PART: 'infinitive-to', // 不定式标记 to
+      // 其他通用标签没有直接映射到我们的词性类型
+      // PUNCT (标点), SYM (符号), X (其他), SPACE (空格)
+
+      // Penn Treebank POS Tags 映射
+      // 名词类
+      NN: 'noun', // 单数名词
       NNS: 'noun', // 复数名词
-      NNP: 'noun', // 专有名词
+      NNP: 'noun', // 单数专有名词
       NNPS: 'noun', // 复数专有名词
+      // 动词类
       VB: 'verb', // 动词原形
       VBD: 'verb', // 过去式动词
-      VBG: 'verb', // 现在分词
+      VBG: 'verb', // 动名词或现在分词
       VBN: 'verb', // 过去分词
-      VBP: 'verb', // 非第三人称单数现在时
-      VBZ: 'verb', // 第三人称单数现在时
+      VBP: 'verb', // 非第三人称单数现在时动词
+      VBZ: 'verb', // 第三人称单数现在时动词
+      // 形容词类
       JJ: 'adjective', // 形容词
       JJR: 'adjective', // 比较级形容词
       JJS: 'adjective', // 最高级形容词
+      // 副词类
       RB: 'adverb', // 副词
       RBR: 'adverb', // 比较级副词
       RBS: 'adverb', // 最高级副词
-      DT: 'determiner', // 限定词
+      WRB: 'adverb', // WH-副词
+      // 代词类
       PRP: 'pronoun', // 人称代词
       PRP$: 'pronoun', // 所有格代词
-      WP: 'pronoun', // wh-代词
-      WP$: 'pronoun', // 所有格wh-代词
-      IN: 'preposition', // 介词
+      WP: 'pronoun', // WH-代词
+      WP$: 'pronoun', // 所有格WH-代词
+      // 限定词类
+      DT: 'determiner', // 限定词
+      PDT: 'determiner', // 前限定词
+      WDT: 'determiner', // WH-限定词
+      // 介词类
+      IN: 'preposition', // 介词或从属连词
+      // 连词类
       CC: 'conjunction', // 并列连词
+      // 数词类
+      CD: 'number', // 基数词
+      // 特殊类
+      MD: 'modal verb', // 情态动词
+      TO: 'infinitive-to', // to作为不定式标记
+      EX: 'pronoun', // 存在句there
+      FW: 'noun', // 外来词
+      LS: 'number', // 列表项标记
+      POS: 'noun', // 所有格标记
+      RP: 'adverb', // 小品词
+      SYM: 'noun', // 符号
       UH: 'interjection', // 感叹词
     };
 
-    return posMapping[winkPos] as PartOfSpeech;
+    return posMapping[winkPos];
   }
 }
 

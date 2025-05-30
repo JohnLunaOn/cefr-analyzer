@@ -7,15 +7,29 @@ export type CEFRLevel = 'a1' | 'a2' | 'b1' | 'b2' | 'c1' | 'c2';
  * 词性类型
  */
 export type PartOfSpeech =
-  | 'noun'
+  | 'determiner'
   | 'verb'
+  | 'noun'
   | 'adjective'
   | 'adverb'
-  | 'determiner'
-  | 'pronoun'
   | 'preposition'
   | 'conjunction'
-  | 'interjection';
+  | 'exclamation'
+  | 'pronoun'
+  | 'auxiliary verb'
+  | 'number'
+  | 'modal verb'
+  | 'ordinal number'
+  | 'linking verb'
+  | 'definite article'
+  | 'infinitive marker'
+  | 'be-verb'
+  | 'modal auxiliary'
+  | 'interjection'
+  | 'do-verb'
+  | 'have-verb'
+  | 'infinitive-to'
+  | 'vern';
 
 /**
  * 词汇表中的单词条目

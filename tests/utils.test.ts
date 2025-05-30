@@ -102,12 +102,107 @@ describe('Utils', () => {
   });
 
   describe('calculateComplexityScore', () => {
-    test('should calculate complexity score correctly', () => {
-      const score = calculateComplexityScore(mockResult);
+    test('should calculate complexity score correctly for standard text (100 words)', () => {
+      const result = calculateComplexityScore(mockResult);
 
-      // 计算预期得分：(30*1 + 25*2 + 20*3 + 15*4 + 5*5 + 0*6) / 95 = 2.37...
-      const expectedScore = (30 * 1 + 25 * 2 + 20 * 3 + 15 * 4 + 5 * 5) / 95;
-      expect(score).toBeCloseTo(expectedScore, 2);
+      // 基础得分计算：(30*1 + 25*2 + 20*3 + 15*4 + 5*5 + 0*6) / 100 = 2.35
+      // 100词正好不需要短文本惩罚和长文本奖励
+      const baseScore = (30 * 1 + 25 * 2 + 20 * 3 + 15 * 4 + 5 * 5 + 0 * 6) / 100;
+
+      expect(result.score).toBeCloseTo(baseScore, 2);
+      expect(result.level).toBe(getComplexityLevel(baseScore));
+      expect(result.note).toBeUndefined();
+    });
+
+    test('should handle very short text (less than 30 words) with special note', () => {
+      const veryShortResult: ICEFRAnalysisResult = {
+        ...mockResult,
+        totalWords: 25,
+        levelPercentages: {
+          a1: 40,
+          a2: 30,
+          b1: 20,
+          b2: 10,
+          c1: 0,
+          c2: 0,
+        },
+      };
+
+      const result = calculateComplexityScore(veryShortResult);
+
+      // 基础得分计算：(40*1 + 30*2 + 20*3 + 10*4 + 0*5 + 0*6) / 100 = 2.0
+      const baseScore = (40 * 1 + 30 * 2 + 20 * 3 + 10 * 4 + 0 * 5 + 0 * 6) / 100;
+
+      expect(result.score).toBeCloseTo(baseScore, 2);
+      expect(result.level).toBe(getComplexityLevel(baseScore));
+      expect(result.note).toBe('Too short to evaluate CEFR level reliably.');
+    });
+
+    test('should apply short text penalty (less than 100 words)', () => {
+      const shortResult: ICEFRAnalysisResult = {
+        ...mockResult,
+        totalWords: 60,
+        levelPercentages: {
+          a1: 30,
+          a2: 25,
+          b1: 20,
+          b2: 15,
+          c1: 10,
+          c2: 0,
+        },
+      };
+
+      const result = calculateComplexityScore(shortResult);
+
+      // 基础得分：(30*1 + 25*2 + 20*3 + 15*4 + 10*5 + 0*6) / 100 = 2.5
+      const baseScore = (30 * 1 + 25 * 2 + 20 * 3 + 15 * 4 + 10 * 5 + 0 * 6) / 100;
+
+      // 短文本惩罚：((100 - 60) / 100) * 0.5 = 0.2
+      const shortPenalty = ((100 - 60) / 100) * 0.5;
+
+      // 调整后得分：2.5 - 0.2 = 2.3
+      const adjustedScore = baseScore - shortPenalty;
+
+      expect(result.score).toBeCloseTo(adjustedScore, 2);
+      expect(result.level).toBe(getComplexityLevel(adjustedScore));
+      expect(result.note).toBeUndefined();
+    });
+
+    test('should apply long text bonus (more than 100 words)', () => {
+      const longResult: ICEFRAnalysisResult = {
+        ...mockResult,
+        totalWords: 500,
+        levelPercentages: {
+          a1: 20,
+          a2: 20,
+          b1: 20,
+          b2: 20,
+          c1: 15,
+          c2: 5,
+        },
+      };
+
+      const result = calculateComplexityScore(longResult);
+
+      // 基础得分：(20*1 + 20*2 + 20*3 + 20*4 + 15*5 + 5*6) / 100 = 3.05
+      const baseScore = (20 * 1 + 20 * 2 + 20 * 3 + 20 * 4 + 15 * 5 + 5 * 6) / 100;
+
+      // 长文本奖励：Math.min(1.0, Math.log(Math.max(1, 500 - 100)) / 10) ≈ 0.6
+      const longBonus = Math.min(1.0, Math.log(Math.max(1, 500 - 100)) / 10);
+
+      // 调整后得分：3.05 + 0.6 = 3.65
+      const adjustedScore = baseScore + longBonus;
+
+      expect(result.score).toBeCloseTo(adjustedScore, 2);
+      expect(result.level).toBe(getComplexityLevel(adjustedScore));
+      expect(result.note).toBeUndefined();
+    });
+
+    test('should return score with two decimal places', () => {
+      const result = calculateComplexityScore(mockResult);
+
+      // 检查得分是否保留两位小数
+      expect(result.score.toString()).toMatch(/^\d+\.\d{2}$/);
     });
 
     test('should return 0 for empty text', () => {
@@ -120,8 +215,9 @@ describe('Utils', () => {
         wordsAtLevel: { a1: [], a2: [], b1: [], b2: [], c1: [], c2: [] },
       };
 
-      const score = calculateComplexityScore(emptyResult);
-      expect(score).toBe(0);
+      const result = calculateComplexityScore(emptyResult);
+      expect(result.score).toBe(0);
+      expect(result.level).toBe('a1');
     });
 
     test('should return 0 when no words are recognized', () => {
@@ -145,8 +241,9 @@ describe('Utils', () => {
         wordsAtLevel: { a1: [], a2: [], b1: [], b2: [], c1: [], c2: [] },
       };
 
-      const score = calculateComplexityScore(noRecognizedWordsResult);
-      expect(score).toBe(0);
+      const result = calculateComplexityScore(noRecognizedWordsResult);
+      expect(result.score).toBe(0);
+      expect(result.level).toBe('a1');
     });
   });
 

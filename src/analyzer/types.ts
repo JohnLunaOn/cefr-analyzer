@@ -25,7 +25,7 @@ export interface ITextAnalyzer {
    * 获取文本的CEFR级别分布统计
    * @param text 要分析的文本
    * @param options 分析选项
-   * @returns 各级别单词数量的统计
+   * @returns 各级别单词分布的百分比统计
    */
   getLevelDistribution(text: string, options?: IAnalyzerOptions): Record<CEFRLevel, number>;
 }
