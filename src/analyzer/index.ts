@@ -1,6 +1,12 @@
 import winkNLP from 'wink-nlp';
 import model from 'wink-eng-lite-web-model';
-import { CEFRLevel, ICEFRAnalysisResult, IAnalyzerOptions, type PartOfSpeech } from '../types';
+import {
+  CEFRLevel,
+  ICEFRAnalysisResult,
+  IAnalyzerOptions,
+  type PartOfSpeech,
+  IWordWithPos,
+} from '../types';
 import { vocabularyManager } from '../vocabulary';
 import { ITextAnalyzer, IWordProcessingResult } from './types';
 
@@ -57,23 +63,36 @@ export class CEFRTextAnalyzer implements ITextAnalyzer {
       c2: 0,
     };
 
-    const unknownWordsList: string[] = [];
+    const unknownWordsList: Set<string> = new Set();
+
+    // 初始化各级别单词列表
+    const wordsAtLevel: Record<CEFRLevel, IWordWithPos[]> = {
+      a1: [],
+      a2: [],
+      b1: [],
+      b2: [],
+      c1: [],
+      c2: [],
+    };
 
     tokens.forEach((token: any) => {
       const word = token.out();
+      // 获取单词的词性
+      const pos = token.out(this.nlp.its.pos);
+
       if (word.trim() === '') return; // 跳过空单词
 
       const normalizedWord = mergedOptions.caseSensitive ? word : word.toLowerCase();
+      const uniqueKey = mergedOptions.analyzeByPartOfSpeech
+        ? `${normalizedWord}-${pos}`
+        : normalizedWord;
 
       // 如果已处理过该单词，则跳过
-      if (uniqueWords.has(normalizedWord)) {
+      if (uniqueWords.has(uniqueKey)) {
         return;
       }
 
-      uniqueWords.add(normalizedWord);
-
-      // 获取单词的词性
-      const pos = token.out(this.nlp.its.pos);
+      uniqueWords.add(uniqueKey);
 
       // 查询单词的CEFR级别
       let cefrLevel;
@@ -100,14 +119,19 @@ export class CEFRTextAnalyzer implements ITextAnalyzer {
       // 更新统计数据
       if (cefrLevel) {
         levelCounts[cefrLevel]++;
+        // 将单词添加到对应级别的列表中
+        wordsAtLevel[cefrLevel].push({
+          word: normalizedWord,
+          pos: pos,
+        });
       } else if (mergedOptions.includeUnknownWords) {
-        unknownWordsList.push(normalizedWord);
+        unknownWordsList.add(normalizedWord);
       }
     });
 
     // 计算总单词数和未知单词数
     const totalWords = uniqueWords.size;
-    const unknownWords = unknownWordsList.length;
+    const unknownWords = unknownWordsList.size;
 
     // 计算各级别单词占比
     const levelPercentages: Record<CEFRLevel, number> = {
@@ -131,7 +155,8 @@ export class CEFRTextAnalyzer implements ITextAnalyzer {
       levelCounts,
       levelPercentages,
       unknownWords,
-      unknownWordsList: mergedOptions.includeUnknownWords ? unknownWordsList : [],
+      unknownWordsList: mergedOptions.includeUnknownWords ? [...unknownWordsList] : [],
+      wordsAtLevel,
     };
   }
 
@@ -140,54 +165,21 @@ export class CEFRTextAnalyzer implements ITextAnalyzer {
    * @param text 要分析的文本
    * @param level CEFR级别
    * @param options 分析选项
-   * @returns 指定级别的单词列表
+   * @returns 指定级别的单词列表（包含词性）
    */
-  public getWordsAtLevel(text: string, level: CEFRLevel, options?: IAnalyzerOptions): string[] {
-    const defaultOptions: IAnalyzerOptions = {
-      caseSensitive: false,
-      analyzeByPartOfSpeech: false,
-    };
-
-    const mergedOptions = { ...defaultOptions, ...options };
-
-    // 使用wink-nlp处理文本
-    const doc = this.nlp.readDoc(text);
-
-    // 提取所有单词（过滤掉标点符号和数字）
-    const tokens = doc.tokens().filter((token: any) => {
-      return token.out(this.nlp.its.type) === 'word' && !token.out(this.nlp.its.stopWordFlag);
+  public getWordsAtLevel(
+    text: string,
+    level: CEFRLevel,
+    options?: IAnalyzerOptions
+  ): IWordWithPos[] {
+    // 通过analyze方法获取分析结果，确保includeUnknownWords选项为false，因为我们只关心特定级别的单词
+    const analysisResult = this.analyze(text, {
+      ...options,
+      includeUnknownWords: false, // 不需要未知单词列表
     });
 
-    // 查找指定CEFR级别的单词
-    const wordsAtLevel = new Set<string>();
-
-    tokens.forEach((token: any) => {
-      const word = token.out();
-      const normalizedWord = mergedOptions.caseSensitive ? word : word.toLowerCase();
-
-      // 获取单词的词性
-      const pos = token.out(this.nlp.its.pos);
-
-      // 查询单词的CEFR级别
-      let cefrLevel;
-      if (mergedOptions.analyzeByPartOfSpeech) {
-        // 根据词性查询CEFR级别
-        const mappedPos = this.mapPartOfSpeech(pos);
-        cefrLevel = mappedPos
-          ? vocabularyManager.getCEFRLevel(normalizedWord, mappedPos)
-          : undefined;
-      } else {
-        // 不考虑词性，直接查询CEFR级别
-        cefrLevel = vocabularyManager.getCEFRLevel(normalizedWord);
-      }
-
-      // 如果单词的CEFR级别匹配，则添加到结果集
-      if (cefrLevel === level) {
-        wordsAtLevel.add(normalizedWord);
-      }
-    });
-
-    return Array.from(wordsAtLevel);
+    // 直接返回指定级别的单词列表
+    return analysisResult.wordsAtLevel[level];
   }
 
   /**

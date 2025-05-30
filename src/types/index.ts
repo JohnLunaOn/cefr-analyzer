@@ -27,6 +27,16 @@ export interface IVocabularyItem {
 }
 
 /**
+ * 单词及其词性
+ */
+export interface IWordWithPos {
+  /** 单词 */
+  word: string;
+  /** 词性 */
+  pos: string;
+}
+
+/**
  * 分析结果统计
  */
 export interface ICEFRAnalysisResult {
@@ -40,6 +50,8 @@ export interface ICEFRAnalysisResult {
   unknownWords: number;
   /** 未识别的单词列表 */
   unknownWordsList: string[];
+  /** 各CEFR级别的单词列表（包含词性） */
+  wordsAtLevel: Record<CEFRLevel, IWordWithPos[]>;
 }
 
 /**

@@ -1,4 +1,4 @@
-import { CEFRLevel, ICEFRAnalysisResult, IAnalyzerOptions } from '../types';
+import { CEFRLevel, ICEFRAnalysisResult, IAnalyzerOptions, IWordWithPos } from '../types';
 
 /**
  * 文本分析器接口
@@ -17,9 +17,9 @@ export interface ITextAnalyzer {
    * @param text 要分析的文本
    * @param level CEFR级别
    * @param options 分析选项
-   * @returns 指定级别的单词列表
+   * @returns 指定级别的单词列表（包含词性）
    */
-  getWordsAtLevel(text: string, level: CEFRLevel, options?: IAnalyzerOptions): string[];
+  getWordsAtLevel(text: string, level: CEFRLevel, options?: IAnalyzerOptions): IWordWithPos[];
 
   /**
    * 获取文本的CEFR级别分布统计

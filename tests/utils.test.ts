@@ -28,6 +28,55 @@ describe('Utils', () => {
     },
     unknownWords: 5,
     unknownWordsList: ['unknown1', 'unknown2', 'unknown3', 'unknown4', 'unknown5'],
+    wordsAtLevel: {
+      a1: [
+        { word: 'word1', pos: 'NN' },
+        { word: 'word2', pos: 'NN' },
+        { word: 'word3', pos: 'NN' },
+        { word: 'word4', pos: 'NN' },
+        { word: 'word5', pos: 'NN' },
+        { word: 'word6', pos: 'NN' },
+        { word: 'word7', pos: 'NN' },
+        { word: 'word8', pos: 'NN' },
+        { word: 'word9', pos: 'NN' },
+        { word: 'word10', pos: 'NN' },
+      ],
+      a2: [
+        { word: 'word11', pos: 'NN' },
+        { word: 'word12', pos: 'NN' },
+        { word: 'word13', pos: 'NN' },
+        { word: 'word14', pos: 'NN' },
+        { word: 'word15', pos: 'NN' },
+      ],
+      b1: [
+        { word: 'word16', pos: 'NN' },
+        { word: 'word17', pos: 'NN' },
+        { word: 'word18', pos: 'NN' },
+        { word: 'word19', pos: 'NN' },
+        { word: 'word20', pos: 'NN' },
+      ],
+      b2: [
+        { word: 'word21', pos: 'NN' },
+        { word: 'word22', pos: 'NN' },
+        { word: 'word23', pos: 'NN' },
+        { word: 'word24', pos: 'NN' },
+        { word: 'word25', pos: 'NN' },
+      ],
+      c1: [
+        { word: 'word26', pos: 'NN' },
+        { word: 'word27', pos: 'NN' },
+        { word: 'word28', pos: 'NN' },
+        { word: 'word29', pos: 'NN' },
+        { word: 'word30', pos: 'NN' },
+      ],
+      c2: [
+        { word: 'word31', pos: 'NN' },
+        { word: 'word32', pos: 'NN' },
+        { word: 'word33', pos: 'NN' },
+        { word: 'word34', pos: 'NN' },
+        { word: 'word35', pos: 'NN' },
+      ],
+    },
   };
 
   describe('formatAnalysisResult', () => {
@@ -68,6 +117,7 @@ describe('Utils', () => {
         levelPercentages: { a1: 0, a2: 0, b1: 0, b2: 0, c1: 0, c2: 0 },
         unknownWords: 0,
         unknownWordsList: [],
+        wordsAtLevel: { a1: [], a2: [], b1: [], b2: [], c1: [], c2: [] },
       };
 
       const score = calculateComplexityScore(emptyResult);
@@ -92,6 +142,7 @@ describe('Utils', () => {
           'word9',
           'word10',
         ],
+        wordsAtLevel: { a1: [], a2: [], b1: [], b2: [], c1: [], c2: [] },
       };
 
       const score = calculateComplexityScore(noRecognizedWordsResult);

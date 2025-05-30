@@ -95,11 +95,11 @@ describe('CEFRTextAnalyzer', () => {
     const a1Words = analyzer.getWordsAtLevel(text, 'a1');
     const b2Words = analyzer.getWordsAtLevel(text, 'b2');
 
-    expect(a1Words).toContain('hello');
-    expect(a1Words).toContain('world');
+    expect(a1Words[0].word).toBe('hello');
+    expect(a1Words[1].word).toContain('world');
     expect(a1Words.length).toBe(2);
 
-    expect(b2Words).toContain('vocabulary');
+    expect(b2Words[0].word).toBe('vocabulary');
     expect(b2Words.length).toBe(1);
   });
 
@@ -208,37 +208,78 @@ describe('CEFRTextAnalyzer', () => {
     expect(distribution.a1).toBe(100); // 所有唯一单词都是A1级别
   });
 
-  // test('should handle unmapped part of speech', () => {
-  //   // 模拟wink-nlp返回一个未映射的词性
-  //   (mockDoc.tokens as jest.Mock).mockReturnValueOnce([
-  //     {
-  //       out: jest.fn().mockImplementation((its) => {
-  //         if (its === mockIts.pos) return 'XX'; // 未映射的词性
-  //         return 'testword';
-  //       }),
-  //     },
-  //   ]);
+  test('should include wordsAtLevel in analysis result', () => {
+    const text = 'Hello world computer analyze vocabulary sophisticated paradigm unknown';
+    const result = analyzer.analyze(text);
 
-  //   const result = analyzer.analyze('testword', { analyzeByPartOfSpeech: true });
+    // 验证wordsAtLevel包含了正确的单词和词性
+    expect(result.wordsAtLevel.a1.length).toBe(2);
+    expect(result.wordsAtLevel.a1[0].word).toBe('hello');
+    expect(result.wordsAtLevel.a1[0].pos).toBe('NN'); // 模拟返回的词性
+    expect(result.wordsAtLevel.a1[1].word).toBe('world');
+    expect(result.wordsAtLevel.a1[1].pos).toBe('NN');
 
-  //   // 验证调用了不带词性的getCEFRLevel方法
-  //   expect(vocabularyManager.getCEFRLevel).toHaveBeenCalledWith('testword');
-  // });
+    expect(result.wordsAtLevel.a2.length).toBe(1);
+    expect(result.wordsAtLevel.a2[0].word).toBe('computer');
+    expect(result.wordsAtLevel.a2[0].pos).toBe('NN');
 
-  // test('should handle unmapped part of speech in getWordsAtLevel', () => {
-  //   // 模拟wink-nlp返回一个未映射的词性
-  //   (mockDoc.tokens as jest.Mock).mockReturnValueOnce([
-  //     {
-  //       out: jest.fn().mockImplementation((its) => {
-  //         if (its === mockIts.pos) return 'XX'; // 未映射的词性
-  //         return 'testword';
-  //       }),
-  //     },
-  //   ]);
+    expect(result.wordsAtLevel.b1.length).toBe(1);
+    expect(result.wordsAtLevel.b1[0].word).toBe('analyze');
+    expect(result.wordsAtLevel.b1[0].pos).toBe('NN');
 
-  //   const words = analyzer.getWordsAtLevel('testword', 'a1', { analyzeByPartOfSpeech: true });
+    expect(result.wordsAtLevel.b2.length).toBe(1);
+    expect(result.wordsAtLevel.b2[0].word).toBe('vocabulary');
+    expect(result.wordsAtLevel.b2[0].pos).toBe('NN');
 
-  //   // 验证调用了不带词性的getCEFRLevel方法
-  //   expect(vocabularyManager.getCEFRLevel).toHaveBeenCalledWith('testword');
-  // });
+    expect(result.wordsAtLevel.c1.length).toBe(1);
+    expect(result.wordsAtLevel.c1[0].word).toBe('sophisticated');
+    expect(result.wordsAtLevel.c1[0].pos).toBe('NN');
+
+    expect(result.wordsAtLevel.c2.length).toBe(1);
+    expect(result.wordsAtLevel.c2[0].word).toBe('paradigm');
+    expect(result.wordsAtLevel.c2[0].pos).toBe('NN');
+
+    // 验证未知单词不在任何级别的单词列表中
+    expect(result.wordsAtLevel.a1.find(w => w.word === 'unknown')).toBeUndefined();
+    expect(result.wordsAtLevel.a2.find(w => w.word === 'unknown')).toBeUndefined();
+    expect(result.wordsAtLevel.b1.find(w => w.word === 'unknown')).toBeUndefined();
+    expect(result.wordsAtLevel.b2.find(w => w.word === 'unknown')).toBeUndefined();
+    expect(result.wordsAtLevel.c1.find(w => w.word === 'unknown')).toBeUndefined();
+    expect(result.wordsAtLevel.c2.find(w => w.word === 'unknown')).toBeUndefined();
+  });
+
+  test('should handle empty text for wordsAtLevel', () => {
+    const result = analyzer.analyze('');
+
+    // 验证空文本的wordsAtLevel所有级别都是空数组
+    expect(result.wordsAtLevel.a1).toEqual([]);
+    expect(result.wordsAtLevel.a2).toEqual([]);
+    expect(result.wordsAtLevel.b1).toEqual([]);
+    expect(result.wordsAtLevel.b2).toEqual([]);
+    expect(result.wordsAtLevel.c1).toEqual([]);
+    expect(result.wordsAtLevel.c2).toEqual([]);
+  });
+
+  test('should handle repeated words in wordsAtLevel', () => {
+    const text = 'Hello hello world world';
+    const result = analyzer.analyze(text);
+
+    // 验证重复单词在wordsAtLevel中只出现一次
+    expect(result.wordsAtLevel.a1.length).toBe(2);
+    expect(result.wordsAtLevel.a1[0].word).toBe('hello');
+    expect(result.wordsAtLevel.a1[0].pos).toBe('NN');
+    expect(result.wordsAtLevel.a1[1].word).toBe('world');
+    expect(result.wordsAtLevel.a1[1].pos).toBe('NN');
+  });
+
+  test('should return words with POS in getWordsAtLevel method', () => {
+    const text = 'Hello world computer';
+    const a1Words = analyzer.getWordsAtLevel(text, 'a1');
+
+    expect(a1Words.length).toBe(2);
+    expect(a1Words[0].word).toBe('hello');
+    expect(a1Words[0].pos).toBe('NN');
+    expect(a1Words[1].word).toBe('world');
+    expect(a1Words[1].pos).toBe('NN');
+  });
 });
