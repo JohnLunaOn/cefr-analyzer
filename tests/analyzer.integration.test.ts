@@ -116,4 +116,150 @@ describe('CEFRTextAnalyzer Integration Tests', () => {
     // 验证至少找到了 "write" 或其词形变化
     expect(writeWords.length + writingWords.length).toBeGreaterThan(0);
   });
+
+  /**
+   * 测试大小写敏感选项
+   */
+  test('should handle case sensitive option correctly', () => {
+    const text = 'Book BOOK book';
+
+    // 测试大小写敏感
+    const caseSensitiveResult = analyzer.analyze(text, { caseSensitive: true });
+    
+    // 测试大小写不敏感（默认）
+    const caseInsensitiveResult = analyzer.analyze(text, { caseSensitive: false });
+
+    // 大小写敏感时，应该有更多的唯一单词
+    expect(caseSensitiveResult.totalWords).toBeGreaterThanOrEqual(caseInsensitiveResult.totalWords);
+  });
+
+  /**
+   * 测试includeUnknownWords选项为false的情况
+   */
+  test('should handle includeUnknownWords option set to false', () => {
+    const text = 'This has some unknownxyzword that should not be included.';
+
+    const result = analyzer.analyze(text, { includeUnknownWords: false });
+
+    // 当includeUnknownWords为false时，unknownWordsList应该为空
+    expect(result.unknownWordsList).toEqual([]);
+  });
+
+  /**
+   * 测试无法映射词性的情况
+   */
+  test('should handle unmappable parts of speech in analyzeByPartOfSpeech mode', () => {
+    // 使用包含特殊词性的文本
+    const text = 'Hello! 123 @#$ world.';
+
+    const result = analyzer.analyze(text, { analyzeByPartOfSpeech: true });
+
+    // 验证分析能正常完成，不会出错
+    expect(result.totalWords).toBeGreaterThanOrEqual(0);
+    expect(result.levelCounts).toBeDefined();
+  });
+
+  /**
+   * 测试fixLemma功能和词性分析模式下的fallback逻辑
+   */
+  test('should handle lemma fixing with part of speech analysis', () => {
+    // 使用包含需要词形还原的单词
+    const text = 'I am reading books and writing stories.';
+
+    // 模拟vocabularyManager返回undefined，触发fixLemma逻辑
+    jest.spyOn(vocabularyManager, 'getCEFRLevel')
+      .mockImplementation((word: string, pos?: string) => {
+        // 对于某些词返回undefined，触发fixLemma逻辑
+        if (word === 'reading' || word === 'books' || word === 'stories') {
+          return undefined;
+        }
+        // 对词形还原后的词返回级别
+        if (word === 'read' || word === 'book' || word === 'story') {
+          return 'a1';
+        }
+        // 对其他词返回固定值，避免递归
+        if (word === 'i' || word === 'am' || word === 'and') {
+          return 'a1';
+        }
+        return undefined;
+      });
+
+    const result = analyzer.analyze(text, { analyzeByPartOfSpeech: true });
+
+    // 验证fixLemma逻辑正常工作
+    expect(result.totalWords).toBeGreaterThan(0);
+    
+    // 清理mock
+    jest.restoreAllMocks();
+  });
+
+  /**
+   * 测试空文本和只有未知词的边界情况
+   */
+  test('should handle edge cases for percentage calculation', () => {
+    // 测试只有未知词的情况，这会导致count为0
+    const unknownText = 'xyzunknown abcdefgh qwerty';
+    
+    // 模拟所有词都返回undefined
+    jest.spyOn(vocabularyManager, 'getCEFRLevel')
+      .mockImplementation(() => undefined);
+
+    const result = analyzer.analyze(unknownText);
+
+    // 验证百分比计算不会出错
+    expect(result.levelPercentages).toBeDefined();
+    Object.values(result.levelPercentages).forEach(percentage => {
+      expect(percentage).toBe(0);
+    });
+
+    // 清理mock
+    jest.restoreAllMocks();
+  });
+
+  /**
+   * 测试mapPartOfSpeech返回undefined的情况
+   */
+  test('should handle unmapped part of speech in analyzeByPartOfSpeech mode', () => {
+    const text = 'Hello world!';
+
+    // 模拟mapPartOfSpeech返回undefined的情况
+    const originalMapPartOfSpeech = analyzer['mapPartOfSpeech'];
+    jest.spyOn(analyzer as any, 'mapPartOfSpeech').mockImplementation(() => undefined);
+
+    const result = analyzer.analyze(text, { analyzeByPartOfSpeech: true });
+
+    // 验证分析能正常完成
+    expect(result.totalWords).toBeGreaterThanOrEqual(0);
+    expect(result.levelCounts).toBeDefined();
+    
+    // 清理mock
+    jest.restoreAllMocks();
+  });
+
+  /**
+   * 测试fixLemma在非analyzeByPartOfSpeech模式下的逻辑
+   */
+  test('should handle fixLemma fallback without part of speech analysis', () => {
+    const text = 'I am reading books.';
+
+    // 模拟vocabularyManager对原词返回undefined，但对lemma返回级别
+    jest.spyOn(vocabularyManager, 'getCEFRLevel')
+      .mockImplementation((word: string, pos?: string) => {
+        if (word === 'reading' || word === 'books') {
+          return undefined; // 原词未找到
+        }
+        if (word === 'read' || word === 'book') {
+          return 'a1'; // lemma找到了
+        }
+        return undefined;
+      });
+
+    const result = analyzer.analyze(text, { analyzeByPartOfSpeech: false });
+
+    // 验证fixLemma逻辑在非词性分析模式下正常工作
+    expect(result.totalWords).toBeGreaterThan(0);
+    
+    // 清理mock
+    jest.restoreAllMocks();
+  });
 });

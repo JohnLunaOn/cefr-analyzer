@@ -105,6 +105,9 @@ export class CEFRTextAnalyzer implements ITextAnalyzer {
       // console.log(`Word: ${word}, Lemma: ${lemma}, Pos: ${pos}`);
 
       if (word.trim() === '') return; // 跳过空单词
+      
+      // 检查 lemma 是否有效，避免 TypeError: Cannot read properties of undefined (reading 'toLowerCase')
+      if (!lemma || typeof lemma !== 'string') return; // 跳过无效的词元
 
       const normalizedWord = lemma.toLowerCase();
       const uniqueKey = mergedOptions.analyzeByPartOfSpeech ? `${word}（${pos}）` : word;

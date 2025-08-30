@@ -55,7 +55,11 @@ jest.mock('wink-nlp', () => {
               if (param.type) return /^[a-zA-Z]+$/.test(word) ? 'word' : 'other';
               if (param.stopWordFlag) return false;
               if (param.pos) return 'NN'; // 默认返回名词词性
-              if (param.lemma) return word.toLowerCase(); // 添加lemma支持
+              if (param.lemma) {
+                // 模拟某些情况下 lemma 可能为 undefined 的情况
+                if (word === 'undefined-lemma-test') return undefined;
+                return word.toLowerCase();
+              }
               return word;
             }),
           }));
@@ -76,7 +80,11 @@ jest.mock('wink-nlp', () => {
               if (param.type) return 'word';
               if (param.stopWordFlag) return false;
               if (param.pos) return 'NN'; // 默认返回名词词性
-              if (param.lemma) return word.toLowerCase(); // 添加lemma支持
+              if (param.lemma) {
+                // 模拟某些情况下 lemma 可能为 undefined 的情况
+                if (word === 'undefined-lemma-test') return undefined;
+                return word.toLowerCase();
+              }
               return word;
             }),
           }));
@@ -373,5 +381,25 @@ describe('CEFRTextAnalyzer', () => {
   // 新增测试用例：测试 cefrAnalyzer 导出实例
   test('should export cefrAnalyzer instance', () => {
     expect(cefrAnalyzer).toBeInstanceOf(CEFRTextAnalyzer);
+  });
+
+  // 新增测试用例：测试处理 undefined lemma 的情况（修复 bug）
+  test('should handle undefined lemma without throwing error', () => {
+    // 使用特殊的测试词，模拟 lemma 为 undefined 的情况
+    const text = 'hello undefined-lemma-test world';
+    
+    // 这个测试不应该抛出 "Cannot read properties of undefined (reading 'toLowerCase')" 错误
+    expect(() => {
+      analyzer.analyze(text);
+    }).not.toThrow();
+    
+    // 验证分析结果，undefined lemma 的词被跳过
+    const result = analyzer.analyze(text);
+    // 验证修复：undefined lemma 的词被跳过，不会导致程序崩溃
+    // 从测试结果可以看到，hello 和 world 被正确识别为 A1 级别
+    // undefined-lemma-test 被归类为未知单词（因为其 lemma 为 undefined 被跳过）
+    expect(result.totalWords).toBe(3); // hello, world, undefined-lemma-test
+    expect(result.levelCounts.a1).toBe(2); // hello 和 world
+    expect(result.unknownWords).toBe(1); // undefined-lemma-test
   });
 });
